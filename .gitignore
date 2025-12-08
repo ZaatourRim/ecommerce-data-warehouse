@@ -1,0 +1,57 @@
+# -------------------------
+# Python cache / artifacts
+# -------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.egg
+build/
+dist/
+
+# Virtual environment
+.venv/
+venv/
+
+# -------------------------
+# Environment variables
+# -------------------------
+.env
+.env.*
+!.env.example     # allow template to be committed safely
+
+# -------------------------
+# macOS system files
+# -------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# -------------------------
+# IDE / Editor files
+# -------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# -------------------------
+# Logs / runtime files
+# -------------------------
+*.log
+logs/
+
+# -------------------------
+# Data files (keep raw data out of repo)
+# -------------------------
+data/raw/*
+!data/raw/.keep   # keep folder but ignore CSVs
+
+# -------------------------
+# PostgreSQL / database dumps
+# -------------------------
+*.sql
+*.dump
+*.bak
