@@ -1,78 +1,90 @@
-# Mini Data Warehouse pipeline (Postgres + Python)
-An end-to-end production style data pipeline that ingests raw e-commerce orders, loads them into PostgreSQL warehouse, applies data cleaning and transformations, and builds analytics-ready mart tables for reporting and insights.
+# Mini Data Warehouse Pipeline (PostgreSQL + Python)
+
+An end-to-end production-style data pipeline that ingests raw e-commerce orders, loads them into a PostgreSQL warehouse, applies data cleaning and transformations, and builds analytics-ready mart tables for reporting and insights.
 
 This project demonstrates essential Data Engineering skills:
-- Incremental ingestion
-- Data modeling (raw -> staging -> marts)
-- SQL transformations
-- Python ETL orchestration via *run_pipelines.py*
-- Data quality checks in Pytest
-- Indexing and performance optimization
-- Reproducible local environment
 
-Lightweight and cloud-free but structured like a real analytics pipeline you'd deploy to Redshift/Snowflake/BigQuery + Airflow.
+- Incremental ingestion  
+- Data modeling (raw → staging → marts)  
+- SQL transformations  
+- Python ETL orchestration via `run_pipeline.py`  
+- Data quality checks in Pytest  
+- Indexing and performance optimization  
+- Reproducible local environment  
 
+Lightweight and cloud-free, but structured like a real analytics pipeline you'd deploy to Redshift, Snowflake, BigQuery, or Airflow.
+
+---
 
 ## Architecture overview
 
 ````bash
-                +----------------------+
-                |  generate_orders.py  |
-                |  (fake daily orders) |
-                +----------+-----------+
-                           |
-                           v
-                +----------------------+
-                |   load_raw.py        |
-                | COPY CSV → raw layer |
-                +----------+-----------+
-                           |
-                           v
-                +-----------------------------+
-                | transform_staging.py        |
-                | Clean + enrich → staging    |
-                +---------------+-------------+
-                                |
-                                v
-                +--------------------------------------------+
-                | transform_mart.py                          |
-                | Build marts:                               |
-                |  - daily_revenue                           |
-                |  - customer_ltv                            |
-                |  - product_revenue                         |
-                |  - customer_segments                       |
-                +----------------+----------------------------+
-                                 |
-                                 v
-                     +------------------------+
-                     |    Analytics-ready     |
-                     |      mart tables       |
-                     +------------------------+
+            +----------------------+
+            |  generate_orders.py  |
+            |  (fake daily orders) |
+            +----------+-----------+
+                       |
+                       v
+            +----------------------+
+            |     load_raw.py      |
+            | COPY CSV → raw layer |
+            +----------+-----------+
+                       |
+                       v
+            +-----------------------------+
+            |   transform_staging.py      |
+            | Clean + enrich → staging    |
+            +---------------+-------------+
+                            |
+                            v
+            +--------------------------------------------+
+            |              transform_mart.py             |
+            | Build marts:                               |
+            |  - daily_revenue                           |
+            |  - customer_ltv                            |
+            |  - product_revenue                         |
+            |  - customer_segments                       |
+            +----------------+----------------------------+
+                             |
+                             v
+                 +------------------------+
+                 |   Analytics-ready      |
+                 |      mart tables       |
+                 +------------------------+
 `````
 
-## Data Warehouse layers
-1. **Raw layer (raw.*)**
-Exact copy of incoming CSV data, no transformations
-- Tables : 
-    - **orders_raw**: last CSV batch
-    - **orders_all**: cumulative historical data (old orders + latest orders batch)
 
-2. **Staging layer (staging.*)**
+---
 
-Standardized, cleaned and validated data:
-- Removes invalid price/quantity
-- Removes unknown statuses
-- Ensures timestamp validite
-- Adds computed fields such as **total_amount**
-- Adds indexes:
+## Data Warehouse Layers
+
+### 1. **Raw layer (`raw.*`)**
+
+Exact copy of incoming CSV data with no transformations.
+
+Tables:
+- **orders_raw** → last CSV batch  
+- **orders_all** → cumulative historical data (all batches + load_date)
+
+---
+
+### 2. **Staging layer (`staging.*`)**
+
+Standardized, cleaned, and validated data:
+
+- Removes invalid price/quantity  
+- Removes unknown statuses  
+- Ensures timestamp validity  
+- Adds computed fields such as `total_amount`  
+- Adds performance indexes  
 
 Indexes:
-```bash
+
+```sql
 CREATE INDEX idx_orders_stg_order_ts ON staging.orders_stg(order_timestamp);
 CREATE INDEX idx_orders_stg_customer ON staging.orders_stg(customer_id);
 ```
-
-3. **Mart layer (mart.*)**
+3. **Mart layer (`mart.*`)**
 
 Analytics-ready aggregated tables:
 | Table | Description | 
@@ -97,7 +109,8 @@ Analytics-ready aggregated tables:
 ├── tests/
 │   └── test_quality.py
 ├── README.md
-└── requirements.txt
+├── requirements.txt
+└── docker-compose.yml
 ````
 
 ## Tech stack
@@ -107,23 +120,43 @@ Analytics-ready aggregated tables:
 - *psycopg2*: Database driver
 - *dotenv*: Environment variables management
 - *Pytest*: Data quality testing
+- *Docker*: local Postgres instance
 - *CSV*: Source data format
 
+## Running PostgreSQL with Docker
+This project includes a lightweight Docker setup for PostgreSQL.
 
+1. Start PostgreSQL using Docker Compose
+```bash
+docker compose up -d
+````
+-> This starts a PostgreSQL container named **de-postgres** and a persistent volume for your warehouse data.
+
+2.Environment variables
+
+Create a **.env** file in the project root:
+```bash
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=de_db
+POSTGRES_USER=de_user
+POSTGRES_PASSWORD=de_password
+````
+The pipeline reads these automatically via **python-dotenv**.
+
+3. Connect to Postgres
+```bash
+docker exec -it de-postgres psql -U de_user -d de_db
+```
 ## Setup & Installation
 1. Install dependencies
 ```bash
 pip install -r requirements.txt
 ````
-2. Start PostgreSQL (Locally or in Docker)
+2. Ensure PostgreSQL is running
 
-Create database and user matching your .env config, example:
-```bash
-POSTGRES_HOST=localhost
-POSTGRES_DB=de_db
-POSTGRES_USER=de_user
-POSTGRES_PASSWORD=de_password
-````
+Either locally or via Docker.
+
 3. Run the pipeline
 ```bash
 python src/run_pipeline.py
@@ -147,7 +180,7 @@ data/raw/orders_YYYYMMDD.csv
 ````
 
 ### 2. Loads raw CSV into Postgres (raw.orders_raw & raw.orders_all)
-*load_raw.py* performs:
+`load_raw.py` performs:
 - *COPY* ingestion into **raw.orders_raw**
 - Append into historical table **raw.orders_all**
 - Adds **load_date** column to track loading date ot data
@@ -155,7 +188,7 @@ data/raw/orders_YYYYMMDD.csv
 Simulates a real warehouse ingestion layer..
 
 ### 3. Build staging table (staging.orders_stg)
-*transform_staging.py*:
+*transform_staging.py`:
 - Drops and rebuilds the staging table
 - Cleans invalid records
 - Ensures consistent types
@@ -164,7 +197,7 @@ Simulates a real warehouse ingestion layer..
     - customer_id
 
 ### 4. Build marts (mart.*)
-*transform_marts.py* produces:
+`transform_marts.py` produces:
 
 - ***mart.daily_revenue***: Daily total revenue
 - ***mart.customer_ltv***: Customer lifetime value
@@ -172,8 +205,8 @@ Simulates a real warehouse ingestion layer..
 - ***mart.customer_segments***: 
 LTV-based customer segmentation
 
-## Data Quality tests
-*tests/test_quality.py* validates:
+### Data Quality tests
+`tests/test_quality.py` validates:
 
 - Raw layer is not empty
 - Staging row count >= today’s raw batch
