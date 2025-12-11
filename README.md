@@ -97,6 +97,8 @@ Analytics-ready aggregated tables:
 ## Project Structure and Tech stack
 
 ```bash
+├── analytics/
+│   └── eda.ipynb
 ├── data/
 │   └── raw/
 │       └── orders_YYYYMMDD.csv
@@ -235,7 +237,25 @@ SELECT segment, COUNT(*)
 FROM mart.customer_segments 
 GROUP BY segment;
 ```
+## Exploratory Data Analysis (EDA)
 
+This project includes an **EDA notebook** (`eda.ipynb`)  that analyses the transformed data in the warehouse (mainly `staging.orders_stg`and mart tables).
+The main goal is to validate data quality end-to-end and demonstrate how the warehouse supports real analytics workflows even with synthetic data.
+
+### What the EDA covers:
+- Basic Dataset validation (schema, null checks, distributions)
+- Revenue Analysis over time
+- Category performance
+- Customer behavior:
+    - Lifetime value (LTV)
+    - Repeat vs one-time buyers
+- Product performance ranking
+- Operational metrics:
+    - daily cancellations
+    - Cancellations rates
+
+#### Included Notebook
+For key insights (from synthetic data) check `eda.ipynb` located in the project root. It connects to PostgreSQL directly, queries the warehouse layers, and produces plots + summery statistics.
 ## Future Improvements
 
 Turn this into a full cloud-based production pipeline:
